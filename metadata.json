@@ -1,0 +1,5 @@
+{
+  "name": "AI Image & Comic Creator",
+  "description": "An application to generate images from text prompts using AI. Users can then edit the image, generate a new one, or create a short comic strip based on the initial image. All generated content can be downloaded.",
+  "requestFramePermissions": []
+}
