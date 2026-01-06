@@ -4,7 +4,13 @@ import { GeneratedImage } from "../types";
 
 const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+  // Enhanced error message for client-side Vercel deployments
+  throw new Error(
+    "API_KEY environment variable not set. For Vercel deployments of client-side apps, " +
+    "ensure your API_KEY is configured as an environment variable in your Vercel project settings " +
+    "(e.g., in 'Settings > Environment Variables') and properly exposed to the client-side code." +
+    "This often requires a build step to inject the key into static assets, or a custom Vercel build configuration."
+  );
 }
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
