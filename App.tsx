@@ -15,15 +15,33 @@ const App: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
-  const handleError = (message: string, error: any) => {
-    console.error(message, error);
-    setError(message);
+  const handleError = (contextMessage: string, error: any) => {
+    console.error(contextMessage, error);
+    let errorMessage = contextMessage;
+    let rawErrorDetails: string | null = null;
+
+    if (error instanceof Error) {
+        rawErrorDetails = error.message;
+    } else if (typeof error === 'object' && error !== null) {
+        rawErrorDetails = JSON.stringify(error, null, 2);
+    } else if (typeof error === 'string') {
+        rawErrorDetails = error;
+    }
+
+    if (rawErrorDetails) {
+        errorMessage += `\nDetalles del error: ${rawErrorDetails}`;
+    }
+
+    // Add general guidance for API key issues, as the RPC error is very indicative of this.
+    errorMessage += "\n\nAcción Requerida: Los fallos en las llamadas a la API, especialmente 'Rpc failed due to xhr error' o '500 Internal Server Error', a menudo indican un problema con tu clave API de Google Gemini o su cuenta de facturación asociada. Por favor, asegúrate de que tu clave API sea válida y esté vinculada a un proyecto con la facturación activa. Visita ai.google.dev/gemini-api/docs/billing para más información.";
+
+    setError(errorMessage);
     setAppState(AppState.ERROR);
   };
 
   const handleGenerateImage = useCallback(async (prompt: string) => {
     setAppState(AppState.LOADING);
-    setLoadingMessage('Summoning pixels from the digital ether...');
+    setLoadingMessage('Invocando píxeles del éter digital...');
     setError(null);
     setGeneratedImage(null);
     setComicPanels([]);
@@ -32,35 +50,35 @@ const App: React.FC = () => {
       setGeneratedImage(image);
       setAppState(AppState.IMAGE_DISPLAYED);
     } catch (e) {
-      handleError('Failed to generate image. Please try a different prompt.', e);
+      handleError('Fallo al generar la imagen. Intenta con un prompt diferente.', e);
     }
   }, []);
 
   const handleEditImage = useCallback(async (prompt: string) => {
     if (!generatedImage) return;
     setAppState(AppState.LOADING);
-    setLoadingMessage('Applying artistic alterations...');
+    setLoadingMessage('Aplicando alteraciones artísticas...');
     setError(null);
     try {
       const editedImage = await editImage(prompt, generatedImage);
       setGeneratedImage(editedImage);
       setAppState(AppState.IMAGE_DISPLAYED);
     } catch (e) {
-      handleError('Failed to edit image. The AI might be feeling stubborn.', e);
+      handleError('Fallo al editar la imagen. La IA podría estar un poco testaruda.', e);
     }
   }, [generatedImage]);
 
   const handleCreateComic = useCallback(async () => {
     if (!generatedImage) return;
     setAppState(AppState.LOADING);
-    setLoadingMessage('Generating a universe, one panel at a time...');
+    setLoadingMessage('Generando un universo, un panel a la vez...');
     setError(null);
     try {
       const panels = await generateComicPanels(generatedImage);
       setComicPanels(panels);
       setAppState(AppState.COMIC_DISPLAYED);
     } catch (e) {
-      handleError('Failed to create comic. The story took an unexpected turn.', e);
+      handleError('Fallo al crear el cómic. La historia tomó un giro inesperado.', e);
     }
   }, [generatedImage]);
 
@@ -73,7 +91,7 @@ const App: React.FC = () => {
   const handleDownloadComic = useCallback(async () => {
     if (comicPanels.length > 0) {
       setAppState(AppState.LOADING);
-      setLoadingMessage('Stitching panels together...');
+      setLoadingMessage('Uniendo paneles...');
       await downloadComic(comicPanels.map(p => p.url), 'ai-comic.png');
       setAppState(AppState.COMIC_DISPLAYED);
     }
@@ -109,14 +127,16 @@ const App: React.FC = () => {
         );
       case AppState.ERROR:
          return (
-          <div className="text-center p-8 bg-red-900/20 border border-red-500 rounded-lg">
-            <h2 className="text-2xl font-bold text-red-400 mb-4">An Error Occurred</h2>
-            <p className="text-red-300 mb-6">{error}</p>
+          <div className="text-center p-8 bg-red-900/20 border border-red-500 rounded-lg max-w-xl mx-auto">
+            <h2 className="text-2xl font-bold text-red-400 mb-4">¡Ocurrió un Error!</h2>
+            <p className="text-red-300 mb-6 whitespace-pre-wrap text-left p-4 bg-red-900/40 rounded-md overflow-auto max-h-60">
+                {error}
+            </p>
             <button
               onClick={handleStartOver}
               className="px-6 py-2 bg-red-600 hover:bg-red-700 rounded-md font-semibold transition-colors"
             >
-              Try Again
+              Intentar de Nuevo
             </button>
           </div>
         );
@@ -124,7 +144,7 @@ const App: React.FC = () => {
       default:
         return (
             <div className="text-center text-gray-500">
-                <p>Your generated content will appear here.</p>
+                <p>Tu contenido generado aparecerá aquí.</p>
             </div>
         );
     }
@@ -139,7 +159,7 @@ const App: React.FC = () => {
               AI Image & Comic Creator
             </h1>
             <p className="text-gray-400">
-              Turn your imagination into visuals. What story will you tell?
+              Convierte tu imaginación en imágenes. ¿Qué historia contarás?
             </p>
         </header>
 
@@ -147,16 +167,16 @@ const App: React.FC = () => {
             {appState === AppState.IDLE && (
                  <PromptForm 
                     onSubmit={handleGenerateImage} 
-                    placeholder="A cyberpunk city skyline at dusk, glowing neon signs..." 
-                    buttonText="Generate Image"
+                    placeholder="Un horizonte de ciudad cyberpunk al anochecer, letreros de neón brillantes..." 
+                    buttonText="Generar Imagen"
                     disabled={isFormDisabled}
                 />
             )}
             {appState === AppState.IMAGE_DISPLAYED && (
                  <PromptForm 
                     onSubmit={handleEditImage} 
-                    placeholder="Add a retro film grain effect, make the sky orange..." 
-                    buttonText="Edit Image"
+                    placeholder="Añade un efecto de grano de película retro, haz el cielo naranja..." 
+                    buttonText="Editar Imagen"
                     disabled={isFormDisabled}
                 />
             )}

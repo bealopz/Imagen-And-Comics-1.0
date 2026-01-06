@@ -6,10 +6,10 @@ const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
   // Enhanced error message for client-side Vercel deployments
   throw new Error(
-    "API_KEY environment variable not set. For Vercel deployments of client-side apps, " +
-    "ensure your API_KEY is configured as an environment variable in your Vercel project settings " +
-    "(e.g., in 'Settings > Environment Variables') and properly exposed to the client-side code." +
-    "This often requires a build step to inject the key into static assets, or a custom Vercel build configuration."
+    "La variable de entorno API_KEY no está configurada. Para despliegues de aplicaciones del lado del cliente en Vercel, " +
+    "asegúrate de que tu API_KEY esté configurada como una variable de entorno en la configuración de tu proyecto Vercel " +
+    "(por ejemplo, en 'Settings > Environment Variables') y correctamente expuesta al código del lado del cliente. " +
+    "Esto a menudo requiere un paso de construcción para inyectar la clave en los activos estáticos, o una configuración de construcción personalizada de Vercel."
   );
 }
 
@@ -22,8 +22,8 @@ function processImageResponse(response: GenerateContentResponse): GeneratedImage
   const parts = response.candidates?.[0]?.content?.parts;
 
   if (!parts) {
-    console.error("Invalid response from image generation model:", JSON.stringify(response, null, 2));
-    throw new Error("Image generation failed. The response did not contain image data, possibly due to safety filters or an API error.");
+    console.error("Respuesta inválida del modelo de generación de imagen:", JSON.stringify(response, null, 2));
+    throw new Error("La generación de imagen falló. La respuesta no contenía datos de imagen, posiblemente debido a filtros de seguridad o un error de API.");
   }
   
   for (const part of parts) {
@@ -36,106 +36,153 @@ function processImageResponse(response: GenerateContentResponse): GeneratedImage
       };
     }
   }
-  throw new Error("No image data found in response");
+  throw new Error("No se encontraron datos de imagen en la respuesta.");
 }
 
 export const generateImage = async (prompt: string): Promise<GeneratedImage> => {
-  const response = await ai.models.generateContent({
-    model: imageModel,
-    contents: {
-      parts: [{ text: prompt }],
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: "1:1"
+  try {
+    const response = await ai.models.generateContent({
+      model: imageModel,
+      contents: {
+        parts: [{ text: prompt }],
       },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1"
+        },
+      }
+    });
+    return processImageResponse(response);
+  } catch (e: any) {
+    console.error("Error durante la llamada a la API de generación de imagen:", e);
+    let errorMessage = "Ocurrió un error desconocido durante la generación de imagen.";
+    if (e.message) {
+        errorMessage = e.message;
+    } else if (e.response && e.response.error) {
+        errorMessage = `Error de API: ${e.response.error.message || JSON.stringify(e.response.error)}`;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
     }
-  });
-  return processImageResponse(response);
+    throw new Error(`La llamada a la API de Gemini falló para la generación de imagen: ${errorMessage}`);
+  }
 };
 
 export const editImage = async (prompt: string, originalImage: GeneratedImage): Promise<GeneratedImage> => {
-  const response = await ai.models.generateContent({
-    model: imageModel,
-    contents: {
-      parts: [
-        {
-          inlineData: {
-            data: originalImage.base64,
-            mimeType: originalImage.mimeType,
+  try {
+    const response = await ai.models.generateContent({
+      model: imageModel,
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: originalImage.base64,
+              mimeType: originalImage.mimeType,
+            },
           },
-        },
-        { text: prompt },
-      ],
-    },
-     config: {
-      imageConfig: {
-        aspectRatio: "1:1"
+          { text: prompt },
+        ],
       },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1"
+        },
+      }
+    });
+    return processImageResponse(response);
+  } catch (e: any) {
+    console.error("Error durante la llamada a la API de edición de imagen:", e);
+    let errorMessage = "Ocurrió un error desconocido durante la edición de imagen.";
+    if (e.message) {
+        errorMessage = e.message;
+    } else if (e.response && e.response.error) {
+        errorMessage = `Error de API: ${e.response.error.message || JSON.stringify(e.response.error)}`;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
     }
-  });
-  return processImageResponse(response);
+    throw new Error(`La llamada a la API de Gemini falló para la edición de imagen: ${errorMessage}`);
+  }
 };
 
 export const generateComicPanels = async (baseImage: GeneratedImage): Promise<GeneratedImage[]> => {
-  const storyPrompt = `You are a creative comic book writer. Based on the provided image, invent a simple, coherent 4-panel story about a little girl.
-The story must be consistent, with a clear beginning, middle, and end.
-For each of the 4 panels, write a short, clear, and vivid visual description that an AI image generator can use to create the panel.
-The first panel should be inspired by the user's original image, establishing the little girl and the setting.
-Ensure the descriptions for all panels maintain the same character (the little girl) and the same setting.`;
+  const storyPrompt = `Eres un creativo escritor de cómics. Basado en la imagen proporcionada, inventa una historia sencilla y coherente de 4 paneles sobre una niña pequeña.
+La historia debe ser consistente, con un comienzo, un desarrollo y un final claros.
+Para cada uno de los 4 paneles, escribe una descripción visual corta, clara y vívida que un generador de imágenes de IA pueda usar para crear el panel.
+El primer panel debe inspirarse en la imagen original del usuario, estableciendo a la niña y el escenario.
+Asegúrate de que las descripciones de todos los paneles mantengan el mismo personaje (la niña pequeña) y el mismo escenario.`;
 
-  const storyResponse = await ai.models.generateContent({
-    model: textModel,
-    contents: {
-      parts: [
-        {
-          inlineData: {
-            data: baseImage.base64,
-            mimeType: baseImage.mimeType,
-          }
-        },
-        { text: storyPrompt }
-      ],
-    },
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          panels: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.STRING,
-              description: 'A visual description for a comic book panel.'
+  let responseText = '';
+  try {
+    const storyResponse = await ai.models.generateContent({
+      model: textModel,
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: baseImage.base64,
+              mimeType: baseImage.mimeType,
             }
-          }
-        },
-        required: ['panels']
+          },
+          { text: storyPrompt }
+        ],
       },
-    },
-  });
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            panels: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.STRING,
+                description: 'Una descripción visual para un panel de cómic.'
+              }
+            }
+          },
+          required: ['panels']
+        },
+        thinkingConfig: { thinkingBudget: 10000 }, // Added thinkingConfig for better JSON adherence and story coherence
+      },
+    });
+    responseText = storyResponse.text.trim();
+  } catch (e: any) {
+    console.error("Error durante la llamada a la API de generación de historia de cómic:", e);
+    let errorMessage = "Ocurrió un error desconocido durante la generación de historia de cómic.";
+    if (e.message) {
+        errorMessage = e.message;
+    } else if (e.response && e.response.error) {
+        errorMessage = `Error de API: ${e.response.error.message || JSON.stringify(e.response.error)}`;
+    } else if (typeof e === 'string') {
+        errorMessage = e;
+    }
+    throw new Error(`La llamada a la API de Gemini falló para la generación de historia de cómic: ${errorMessage}`);
+  }
 
-  const responseText = storyResponse.text.trim();
-  const panelDescriptions = JSON.parse(responseText).panels;
+  let panelDescriptions;
+  try {
+    panelDescriptions = JSON.parse(responseText).panels;
+  } catch (e) {
+    console.error("Fallo al parsear la respuesta JSON para los paneles del cómic:", responseText, e);
+    throw new Error(`La IA devolvió un JSON inválido para los paneles del cómic. La respuesta fue: ${responseText.substring(0, 200)}...`);
+  }
   
   if (!Array.isArray(panelDescriptions) || panelDescriptions.length !== 4) {
-      throw new Error("AI failed to return 4 comic panel descriptions.");
+      throw new Error("La IA no devolvió 4 descripciones de paneles de cómic.");
   }
 
   const comicPanels: GeneratedImage[] = [];
-  // Use the user's original image as the reference for the first panel.
+  // Usa la imagen original del usuario como referencia para el primer panel.
   let referenceImage = baseImage;
 
   for (const description of panelDescriptions) {
-    // This prompt instructs the AI to create a *new* panel, but using the `referenceImage`
-    // to keep the character, style, and setting consistent.
-    const styledPrompt = `**Strictly maintain the character design, setting, and art style from the reference image.** Create a NEW comic panel showing this scene: "${description}". Style: comic book art with clear, bold black ink outlines.`;
+    // Esta instrucción le indica a la IA que cree un *nuevo* panel, pero usando la `referenceImage`
+    // para mantener el personaje, el estilo y el escenario consistentes.
+    const styledPrompt = `**Mantén estrictamente el diseño del personaje, el escenario y el estilo artístico de la imagen de referencia.** Crea un NUEVO panel de cómic mostrando esta escena: "${description}". Estilo: arte de cómic con contornos claros y audaces de tinta negra.`;
     
-    // We use a function similar to 'editImage' that sends an image and a text prompt.
+    // editImage ya tiene su propio try-catch ahora.
     const newPanel = await editImage(styledPrompt, referenceImage);
     comicPanels.push(newPanel);
     
-    // The newly created panel becomes the reference for the next one in the sequence.
+    // El panel recién creado se convierte en la referencia para el siguiente en la secuencia.
     referenceImage = newPanel;
   }
 
