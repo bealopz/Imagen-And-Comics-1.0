@@ -20,7 +20,7 @@ export const downloadComic = async (panelUrls: string[], filename: string = 'com
   canvas.width = panelSize * 2 + gap * 3;
   canvas.height = panelSize * 2 + gap * 3;
   
-  ctx.fillStyle = '#111827'; // bg-gray-900
+  ctx.fillStyle = '#1f2937'; // bg-gray-800
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const imagePromises = panelUrls.map(url => {

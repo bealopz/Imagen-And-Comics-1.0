@@ -18,7 +18,21 @@
 }
 </script>
 </head>
-  <body class="bg-gray-900 text-white">
+  <body class="bg-gray-800 text-white">
+    <script>
+      // Shim for process.env for client-side ES module applications like this one
+      // Vercel or other hosting environments need to ensure API_KEY is set in process.env
+      if (typeof process === 'undefined') {
+        window.process = { env: {} };
+      }
+      // IMPORTANT: You must ensure that 'process.env.API_KEY' is actually populated
+      // with your Google Gemini API key by your hosting environment (e.g., Vercel)
+      // for client-side execution. This shim only prevents a ReferenceError,
+      // it does not provide the actual API key value.
+      // If the API key is not automatically injected, you might need to
+      // manually configure Vercel to replace a placeholder in this HTML file
+      // during deployment, or use a build step.
+    </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

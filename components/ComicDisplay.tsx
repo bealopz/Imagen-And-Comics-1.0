@@ -14,19 +14,21 @@ const ComicDisplay: React.FC<ComicDisplayProps> = ({ panels, onDownload, onStart
   return (
     <div className="w-full max-w-5xl text-center">
       <h2 className="text-4xl md:text-5xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Your Comic Awaits!</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        {panels.map((panel, index) => (
-          <div key={index} className="relative aspect-square">
-            <img
-              src={panel.url}
-              alt={`Comic panel ${index + 1}`}
-              className="rounded-lg shadow-lg w-full h-full object-cover"
-            />
-            <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">
-              {index + 1}
+      <div className="bg-gray-900 bg-opacity-50 p-4 sm:p-6 rounded-2xl shadow-2xl shadow-black/30 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {panels.map((panel, index) => (
+            <div key={index} className="relative aspect-square">
+              <img
+                src={panel.url}
+                alt={`Comic panel ${index + 1}`}
+                className="rounded-lg shadow-lg w-full h-full object-cover"
+              />
+              <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg">
+                {index + 1}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <div className="flex flex-col sm:flex-row justify-center gap-4">
         <button

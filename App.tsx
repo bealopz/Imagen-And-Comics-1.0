@@ -133,7 +133,7 @@ const App: React.FC = () => {
   const isFormDisabled = appState === AppState.LOADING || appState === AppState.COMIC_DISPLAYED;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
+    <div className="min-h-screen bg-gray-800 text-white flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans">
         <header className="w-full max-w-2xl text-center mb-8">
              <h1 className="text-4xl md:text-5xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
               AI Image & Comic Creator
